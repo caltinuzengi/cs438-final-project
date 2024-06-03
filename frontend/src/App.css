@@ -28,6 +28,18 @@
   color: #61dafb;
 }
 
+.app-header {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.title {
+  font-family: 'Brush Script MT', cursive;
+  font-size: 4em;
+  color: #007bff;
+  text-shadow: 2px 2px #6c757d;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

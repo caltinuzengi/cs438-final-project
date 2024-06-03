@@ -12,8 +12,27 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from flask_sqlalchemy import SQLAlchemy
+
 app = Flask(__name__)
 CORS(app)
+
+#DB
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///content.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+class Content(db.Model):
+    id = db.Column(db.String, primary_key=True)
+    title = db.Column(db.String, nullable=False)
+    author = db.Column(db.String, nullable=False)
+    date = db.Column(db.String, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    content_hash = db.Column(db.String, nullable=False)
+    tx_hash = db.Column(db.String, nullable=False)
+
+with app.app_context():
+    db.create_all()
 
 # Ethereum node bağlantısı
 w3 = Web3(Web3.HTTPProvider('http://127.0.0.1:8545'))
@@ -51,7 +70,36 @@ def register_content():
     # , 'tx_hash': tx_hash.hex()
     #{'contentId': content_id}
 
+    # Add to DB
+    new_content = Content(
+        id=content['id'],
+        title=content['Title'],
+        author=content['Author'],
+        date=content['Date'],
+        content=content['Content'][:200],
+        content_hash=content_hash,
+        tx_hash=tx_hash.hex()
+    )
+    db.session.add(new_content)
+    db.session.commit()
+
     return jsonify({'tx_hash': tx_hash.hex()})
+
+@app.route('/contents', methods=['GET'])
+def get_contents():
+    contents = Content.query.all()
+    results = [
+        {
+            "id": content.id,
+            "title": content.title,
+            "author": content.author,
+            "date": content.date,
+            "content": content.content,
+            "content_hash": content.content_hash,
+            "tx_hash": content.tx_hash
+        } for content in contents]
+
+    return jsonify(results)
 
 def scrape_content(url):
     # URL'den içeriği çekmek için web scraping kodu
