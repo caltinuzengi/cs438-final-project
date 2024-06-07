@@ -5,6 +5,9 @@ import ContentRegistry from "./ContentRegistry.json";
 import { Container, Form, Button, Card, ListGroup, Alert } from 'react-bootstrap';
 import './App.css'; 
 
+// Çağrı Altınüzengi - 28100
+// Sine Mete - 33486
+// Mustafa Cem Büyükalpelli - 29507
 
 const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
 // const contractAddress = "0x03b53E88F320f91a4d1615c21CF21CDE73018429"; // Truffle dağıtımı sonrası alınan contract adresini buraya ekleyin
