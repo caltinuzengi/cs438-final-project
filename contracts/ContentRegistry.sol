@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+// Çağrı Altınüzengi - 28100
+// Sine Mete - 33486
+// Mustafa Cem Büyükalpelli - 29507
+
 contract ContentRegistry {
     struct Content {
         string id;

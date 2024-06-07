@@ -12,15 +12,36 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from flask_sqlalchemy import SQLAlchemy
+
+# Çağrı Altınüzengi - 28100
+# Sine Mete - 33486
+# Mustafa Cem Büyükalpelli - 29507
+
 app = Flask(__name__)
 CORS(app)
 
-# Ethereum node bağlantısı
+#DB
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///content.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+class Content(db.Model):
+    id = db.Column(db.String, primary_key=True)
+    title = db.Column(db.String, nullable=False)
+    author = db.Column(db.String, nullable=False)
+    date = db.Column(db.String, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    content_hash = db.Column(db.String, nullable=False)
+    tx_hash = db.Column(db.String, nullable=False)
+
+with app.app_context():
+    db.create_all()
+
+# Ethereum node connection
 w3 = Web3(Web3.HTTPProvider('http://127.0.0.1:8545'))
 
-# Akıllı kontrat adresi ve ABI'si
- # Truffle dağıtımı sonrası alınan contract adresini buraya ekleyin
-# contract_abi = []       # Contract ABI'sini buraya ekleyin
+# Contract abi and address from contract's json
 with open('ContentRegistry.json') as f:
     contract_json = json.load(f)
     contract_abi = contract_json['abi']
@@ -34,7 +55,7 @@ def register_content():
     content = scrape_content(url)  # Bu fonksiyon URL'den içeriği çekmeli
     content_hash = w3.keccak(text=content['Content']).hex()
 
-    # Akıllı kontrata veri gönderimi
+    # info to contract
     tx_hash = contract.functions.registerContent(
         content['id'],
         content['Title'],
@@ -51,13 +72,42 @@ def register_content():
     # , 'tx_hash': tx_hash.hex()
     #{'contentId': content_id}
 
+    # Add to DB
+    new_content = Content(
+        id=content['id'],
+        title=content['Title'],
+        author=content['Author'],
+        date=content['Date'],
+        content=content['Content'][:200],
+        content_hash=content_hash,
+        tx_hash=tx_hash.hex()
+    )
+    db.session.add(new_content)
+    db.session.commit()
+
     return jsonify({'tx_hash': tx_hash.hex()})
 
+@app.route('/contents', methods=['GET'])
+def get_contents():
+    contents = Content.query.all()
+    results = [
+        {
+            "id": content.id,
+            "title": content.title,
+            "author": content.author,
+            "date": content.date,
+            "content": content.content,
+            "content_hash": content.content_hash,
+            "tx_hash": content.tx_hash
+        } for content in contents]
+
+    return jsonify(results)
+
 def scrape_content(url):
-    # URL'den içeriği çekmek için web scraping kodu
+    # Web scrabing code
     # response = requests.get(url)
     urlcontent = identify_website(url)
-    # İçeriği parse et ve döndür
+    # Parsing
     # content = {
     #     'id': 'unique_id',
     #     'title': 'Title of the article',
@@ -67,7 +117,7 @@ def scrape_content(url):
     return urlcontent
 
 def extract_tweet_info_with_selenium(tweet_url):
-    driver = webdriver.Chrome()  # Ensure you have the appropriate WebDriver installed
+    driver = webdriver.Chrome()  
     driver.get(tweet_url)
 
     tweet_info = {}
@@ -125,7 +175,7 @@ def extract_article_details_hur(url):
         title_tag = soup.find('h1')
         title = title_tag.text.strip() if title_tag else 'No title found'
 
-        # Attempt to extract the publication date from several possible locations
+        # Extract the publication date from several possible locations
         pub_date_tag = soup.find('span', class_='date') or \
                        soup.find('div', class_='date') or \
                        soup.find('time')
@@ -145,7 +195,6 @@ def extract_article_details_hur(url):
             for div in soup.find_all('div'):
                 print(div.get('class'), div.text[:100])  # Print first 100 characters of each div for inspection
 
-        # Return the extracted data
 
         if author == "No author found":
           author = "huriyet"
